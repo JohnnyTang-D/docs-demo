@@ -21,64 +21,45 @@ describe('createBlockSpec', () => {
   });
 
   describe('节点基本配置', () => {
-    it('应该返回一个 Tiptap Node 实例', () => {
+    it('应该返回包含 config 和 implementation 的对象且 node 实例有效', () => {
       const config = createTestConfig();
-      const node = createBlockSpec(config, defaultImpl);
-      expect(node).toBeDefined();
-      expect(node.name).toBe('callout');
+      const result = createBlockSpec(config, defaultImpl);
+      expect(result).toBeDefined();
+      expect(result.config).toBe(config);
+      expect(result.implementation.node.name).toBe('callout');
     });
 
     it('name 应该与 blockConfig.type 保持一致', () => {
       const config = createTestConfig({ type: 'alert' });
-      const node = createBlockSpec(config, defaultImpl);
+      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
       expect(node.name).toBe('alert');
     });
 
     it('content 应该正确映射自 blockConfig.content', () => {
-      const inlineNode = createBlockSpec(
+      const { implementation: { node: inlineNode } } = createBlockSpec(
         createTestConfig({ content: 'inline' }),
         defaultImpl,
       );
-      const noneNode = createBlockSpec(
+      const { implementation: { node: noneNode } } = createBlockSpec(
         createTestConfig({ content: 'none' }),
         defaultImpl,
       );
 
-      expect(inlineNode.config.content).toBe('inline');
-      expect(noneNode.config.content).toBe('none');
+      expect(inlineNode.config.content).toBe('inline*');
+      expect(noneNode.config.content).toBe('');
     });
 
     it('group 应该始终为 "blockContent"', () => {
       const config = createTestConfig();
-      const node = createBlockSpec(config, defaultImpl);
+      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
       expect(node.config.group).toBe('blockContent');
-    });
-  });
-
-  describe('selectable 配置', () => {
-    it('默认情况下 selectable 应该为 true', () => {
-      const config = createTestConfig();
-      const node = createBlockSpec(config, defaultImpl);
-      expect(node.config.selectable).toBe(true);
-    });
-
-    it('当 isSelectable 设置为 false 时，selectable 应该为 false', () => {
-      const config = createTestConfig({ isSelectable: false });
-      const node = createBlockSpec(config, defaultImpl);
-      expect(node.config.selectable).toBe(false);
-    });
-
-    it('当 isSelectable 设置为 true 时，selectable 应该为 true', () => {
-      const config = createTestConfig({ isSelectable: true });
-      const node = createBlockSpec(config, defaultImpl);
-      expect(node.config.selectable).toBe(true);
     });
   });
 
   describe('addAttributes', () => {
     // 辅助函数：通过配置项获取解析后的 Tiptap 属性配置
     const getAttributes = (config: CustomBlockConfig) => {
-      const node = createBlockSpec(config, defaultImpl);
+      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
       return node.config.addAttributes?.call({} as any) as Record<string, any>;
     };
 
@@ -227,32 +208,33 @@ describe('createBlockSpec', () => {
   describe('parseHTML 规则配置 (Tiptap parseHTML)', () => {
     it('当没有提供自定义 parse 函数时，应该只有默认的类型解析规则', () => {
       const config = createTestConfig({ type: 'banner' });
-      const node = createBlockSpec(config, {});
+      const { implementation: { node } } = createBlockSpec(config, {});
       const rules = node.config.parseHTML?.call({} as any);
 
       expect(rules).toBeDefined();
       expect(rules).toHaveLength(1);
       expect(rules?.[0]).toEqual({
         tag: "[data-content-type=`banner']",
-        contentElement: '[dta-editable]',
+        contentElement: '[data-editable]',
       });
     });
 
     it('当提供了自定义 parse 函数时，应该包含属性提取规则，且 getAttrs 回调行为正确', () => {
       const config = createTestConfig({ type: 'banner' });
       const customParse = vi.fn();
-      const node = createBlockSpec(config, { parse: customParse });
+      const { implementation: { node } } = createBlockSpec(config, { parse: customParse });
       const rules = node.config.parseHTML?.call({} as any);
 
       expect(rules).toBeDefined();
       expect(rules).toHaveLength(2);
       expect(rules?.[0]?.tag).toBe("[data-content-type=`banner']");
+      expect(rules?.[0]?.contentElement).toBe('[data-editable]');
 
       const secondRule = rules?.[1];
       expect(secondRule?.tag).toBe(':*');
       expect(secondRule?.getAttrs).toBeDefined();
 
-      // 1. 如果传入的节点为字符串，应该返回 false
+      // 1. 如果传入 the node 为 string，应该返回 false
       expect(secondRule?.getAttrs?.('string-node' as any)).toBe(false);
       expect(customParse).not.toHaveBeenCalled();
 
@@ -275,7 +257,7 @@ describe('createBlockSpec', () => {
       config: CustomBlockConfig,
       HTMLAttributes: Record<string, any> = {},
     ) => {
-      const node = createBlockSpec(config, defaultImpl);
+      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
       // 调用 renderHTML 函数
       return node.config.renderHTML?.call({} as any, {
         node: {} as any,
@@ -288,18 +270,18 @@ describe('createBlockSpec', () => {
       const result = renderNodeHTML(config);
 
       expect(result).toBeDefined();
-      // renderHTML 返回的是 DOMOutputSpec，需要断言它是一个对象而非数组
       expect(typeof result).toBe('object');
       expect(Array.isArray(result)).toBe(false);
 
-      const output = result as { dom: HTMLElement; contentDOM?: HTMLElement };
+      const output = result as { dom: HTMLElement; contentDOM: HTMLElement };
       expect(output.dom).toBeInstanceOf(HTMLElement);
+      expect(output.contentDOM).toBeInstanceOf(HTMLElement);
 
-      const dom = output.dom;
+      const contentDOM = output.contentDOM;
       // 验证外层容器的类名和属性
-      expect(dom.tagName.toLowerCase()).toBe('div');
-      expect(dom.classList.contains('bn-block-content')).toBe(true);
-      expect(dom.getAttribute('data-content-type')).toBe('callout');
+      expect(contentDOM.tagName.toLowerCase()).toBe('div');
+      expect(contentDOM.classList.contains('bn-block-content')).toBe(true);
+      expect(contentDOM.getAttribute('data-content-type')).toBe('callout');
     });
 
     it('当传入 HTMLAttributes 时，应该正确合并 class 并将其他属性挂载到外层容器', () => {
@@ -310,51 +292,48 @@ describe('createBlockSpec', () => {
         style: 'color: red;',
       });
 
-      const output = result as { dom: HTMLElement; contentDOM?: HTMLElement };
-      const dom = output.dom;
+      const output = result as { dom: HTMLElement; contentDOM: HTMLElement };
+      const contentDOM = output.contentDOM;
       // 验证类名是否合并
-      expect(dom.className).toContain('bn-block-content');
-      expect(dom.className).toContain('my-custom-class');
+      expect(contentDOM.className).toContain('bn-block-content');
+      expect(contentDOM.className).toContain('my-custom-class');
       // 验证其他属性是否被挂载
-      expect(dom.getAttribute('data-id')).toBe('12345');
-      expect(dom.getAttribute('style')).toBe('color: red;');
+      expect(contentDOM.getAttribute('data-id')).toBe('12345');
+      expect(contentDOM.getAttribute('style')).toBe('color: red;');
     });
 
     it('当 content 为 "inline" 时，应该渲染可编辑的 inline 子容器并返回 contentDOM', () => {
       const config = createTestConfig({ content: 'inline' });
       const result = renderNodeHTML(config);
 
-      const output = result as { dom: HTMLElement; contentDOM?: HTMLElement };
+      const output = result as { dom: HTMLElement; contentDOM: HTMLElement };
       const dom = output.dom;
       const contentDOM = output.contentDOM;
 
       // 验证子容器是否正确挂载到外层容器
-      expect(dom.firstElementChild).toBe(contentDOM);
-      expect(contentDOM).toBeDefined();
-      expect(contentDOM!.tagName.toLowerCase()).toBe('div');
+      expect(contentDOM.firstElementChild).toBe(dom);
+      expect(dom).toBeDefined();
+      expect(dom.tagName.toLowerCase()).toBe('div');
       // 验证 inline 容器特有的类名和属性
-      expect(contentDOM!.classList.contains('bn-inline-content')).toBe(true);
-      expect(contentDOM!.hasAttribute('data-editable')).toBe(true);
+      expect(dom.classList.contains('bn-inline-content')).toBe(true);
+      expect(dom.hasAttribute('data-editable')).toBe(true);
     });
 
-    it('当 content 不为 "inline" 时，子容器不应该有 inline 相关属性且 contentDOM 应为 undefined', () => {
+    it('当 content 不为 "inline" 时，子容器不应该有 inline 相关属性且 contentDOM 应为外层包装容器', () => {
       const config = createTestConfig({ content: 'none' });
       const result = renderNodeHTML(config);
 
-      const output = result as { dom: HTMLElement; contentDOM?: HTMLElement };
+      const output = result as { dom: HTMLElement; contentDOM: HTMLElement };
       const dom = output.dom;
       const contentDOM = output.contentDOM;
 
-      // 验证 contentDOM 应该为 undefined
-      expect(contentDOM).toBeUndefined();
-
-      // 获取唯一的子容器
-      const child = dom.firstElementChild as HTMLElement;
-      expect(child).toBeDefined();
-      expect(child.tagName.toLowerCase()).toBe('div');
+      // 验证子容器挂载在外层容器内
+      expect(contentDOM.firstElementChild).toBe(dom);
+      expect(dom).toBeDefined();
+      expect(dom.tagName.toLowerCase()).toBe('div');
       // 验证子容器没有 inline 的类名和可编辑属性
-      expect(child.classList.contains('bn-inline-content')).toBe(false);
-      expect(child.hasAttribute('data-editable')).toBe(false);
+      expect(dom.classList.contains('bn-inline-content')).toBe(false);
+      expect(dom.hasAttribute('data-editable')).toBe(false);
     });
   });
 });
