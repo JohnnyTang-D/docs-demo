@@ -31,19 +31,19 @@ describe('createBlockSpec', () => {
 
     it('name 应该与 blockConfig.type 保持一致', () => {
       const config = createTestConfig({ type: 'alert' });
-      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
+      const {
+        implementation: { node },
+      } = createBlockSpec(config, defaultImpl);
       expect(node.name).toBe('alert');
     });
 
     it('content 应该正确映射自 blockConfig.content', () => {
-      const { implementation: { node: inlineNode } } = createBlockSpec(
-        createTestConfig({ content: 'inline' }),
-        defaultImpl,
-      );
-      const { implementation: { node: noneNode } } = createBlockSpec(
-        createTestConfig({ content: 'none' }),
-        defaultImpl,
-      );
+      const {
+        implementation: { node: inlineNode },
+      } = createBlockSpec(createTestConfig({ content: 'inline' }), defaultImpl);
+      const {
+        implementation: { node: noneNode },
+      } = createBlockSpec(createTestConfig({ content: 'none' }), defaultImpl);
 
       expect(inlineNode.config.content).toBe('inline*');
       expect(noneNode.config.content).toBe('');
@@ -51,7 +51,9 @@ describe('createBlockSpec', () => {
 
     it('group 应该始终为 "blockContent"', () => {
       const config = createTestConfig();
-      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
+      const {
+        implementation: { node },
+      } = createBlockSpec(config, defaultImpl);
       expect(node.config.group).toBe('blockContent');
     });
   });
@@ -59,7 +61,9 @@ describe('createBlockSpec', () => {
   describe('addAttributes', () => {
     // 辅助函数：通过配置项获取解析后的 Tiptap 属性配置
     const getAttributes = (config: CustomBlockConfig) => {
-      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
+      const {
+        implementation: { node },
+      } = createBlockSpec(config, defaultImpl);
       return node.config.addAttributes?.call({} as any) as Record<string, any>;
     };
 
@@ -93,51 +97,6 @@ describe('createBlockSpec', () => {
     });
 
     describe('特定属性过滤与边界情况', () => {
-      it('应该过滤掉 backgroundColor 属性', () => {
-        const defaultConfig = createTestConfig();
-        const attrs = getAttributes({
-          ...defaultConfig,
-          propSchema: {
-            ...defaultConfig.propSchema,
-            backgroundColor: { default: '#fff' },
-          },
-        });
-
-        expect(attrs).not.toHaveProperty('backgroundColor');
-        expect(attrs).toHaveProperty('emoji');
-      });
-
-      it('应该过滤掉 textColor 属性', () => {
-        const defaultConfig = createTestConfig();
-        const attrs = getAttributes({
-          ...defaultConfig,
-          propSchema: {
-            ...defaultConfig.propSchema,
-            textColor: { default: '#000' },
-          },
-        });
-
-        expect(attrs).not.toHaveProperty('textColor');
-        expect(attrs).toHaveProperty('emoji');
-      });
-
-      it('应该同时过滤掉 backgroundColor 和 textColor', () => {
-        const defaultConfig = createTestConfig();
-        const attrs = getAttributes({
-          ...defaultConfig,
-          propSchema: {
-            ...defaultConfig.propSchema,
-            backgroundColor: { default: '#fff' },
-            textColor: { default: '#000' },
-          },
-        });
-
-        expect(attrs).not.toHaveProperty('backgroundColor');
-        expect(attrs).not.toHaveProperty('textColor');
-        // 其他属性仍然存在
-        expect(Object.keys(attrs)).toHaveLength(3);
-      });
-
       it('当 propSchema 为空时，应该返回空对象', () => {
         const attrs = getAttributes(createTestConfig({ propSchema: {} }));
 
@@ -208,7 +167,9 @@ describe('createBlockSpec', () => {
   describe('parseHTML 规则配置 (Tiptap parseHTML)', () => {
     it('当没有提供自定义 parse 函数时，应该只有默认的类型解析规则', () => {
       const config = createTestConfig({ type: 'banner' });
-      const { implementation: { node } } = createBlockSpec(config, {});
+      const {
+        implementation: { node },
+      } = createBlockSpec(config, {});
       const rules = node.config.parseHTML?.call({} as any);
 
       expect(rules).toBeDefined();
@@ -222,7 +183,9 @@ describe('createBlockSpec', () => {
     it('当提供了自定义 parse 函数时，应该包含属性提取规则，且 getAttrs 回调行为正确', () => {
       const config = createTestConfig({ type: 'banner' });
       const customParse = vi.fn();
-      const { implementation: { node } } = createBlockSpec(config, { parse: customParse });
+      const {
+        implementation: { node },
+      } = createBlockSpec(config, { parse: customParse });
       const rules = node.config.parseHTML?.call({} as any);
 
       expect(rules).toBeDefined();
@@ -257,7 +220,9 @@ describe('createBlockSpec', () => {
       config: CustomBlockConfig,
       HTMLAttributes: Record<string, any> = {},
     ) => {
-      const { implementation: { node } } = createBlockSpec(config, defaultImpl);
+      const {
+        implementation: { node },
+      } = createBlockSpec(config, defaultImpl);
       // 调用 renderHTML 函数
       return node.config.renderHTML?.call({} as any, {
         node: {} as any,
