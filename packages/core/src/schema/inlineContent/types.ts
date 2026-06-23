@@ -12,33 +12,34 @@ export type CustomInlineContentConfig = {
 // link 超链接
 // 两个tiptap原生支持
 export type InlineContentConfig = CustomInlineContentConfig | 'text' | 'link';
-
+// 供编辑器使用的 所有的 inlineContent 的 配置集合规范
 export type InlineContentSchema = Record<string, InlineContentConfig>;
 
-export type StyledText<T extends StyleSchema> = {
+// 富文本节点
+export type StyledText<S extends StyleSchema> = {
   type: 'text';
   text: string;
-  styles: Styles<T>;
+  styles: Styles<S>;
 };
-
-export type Link<T extends StyleSchema> = {
+// 链接节点
+export type Link<S extends StyleSchema> = {
   type: 'link';
   href: string;
-  content: StyledText<T>[];
+  content: StyledText<S>[];
 };
 export type PartialLink<S extends StyleSchema> = Omit<Link<S>, 'content'> & {
   content: string | Link<S>['content'];
 };
 
 export type CustomInlineContentFromConfig<
-  I extends CustomInlineContentConfig,
+  C extends CustomInlineContentConfig,
   S extends StyleSchema,
 > = {
-  type: I['type'];
-  props: Props<I['propSchema']>;
-  content: I['content'] extends 'styled'
-    ? StyledText<S>[]
-    : I['content'] extends 'none'
+  type: C['type']; // type把里面的类型推导聚合出来
+  props: Props<C['propSchema']>; // props把里面的类型推导聚合出来
+  content: C['content'] extends 'styled'
+    ? StyledText<S>[] // 这里如果是样式行内内容 会有多个情况 所以是数组
+    : C['content'] extends 'none'
       ? undefined
       : never;
 };
@@ -50,11 +51,9 @@ export type PartialCustomInlineContentFromConfig<
   props?: Props<C['propSchema']>;
   content?: C['content'] extends 'styled'
     ? StyledText<S>[] | string
-    : C['content'] extends 'plain'
-      ? string
-      : C['content'] extends 'none'
-        ? undefined
-        : never;
+    : C['content'] extends 'none'
+      ? undefined
+      : never;
 };
 
 export type InlineContentFromConfig<
@@ -88,3 +87,8 @@ export type PartialInlineContent<
   I extends InlineContentSchema,
   S extends StyleSchema,
 > = PartialInlineContentElement<I, S>[] | string;
+
+export type InlineContent<
+  I extends InlineContentSchema,
+  T extends StyleSchema,
+> = InlineContentFromConfig<I[keyof I], T>;

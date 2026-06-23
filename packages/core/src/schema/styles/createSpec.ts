@@ -3,7 +3,7 @@ import type { StyleConfig, StyleSpec, StylePropSchema } from '@/schema';
 import {
   createStyleParseRules,
   stylePropsToAttributes,
-  createInternalStyleSpec,
+  createStronglyTypedInternalStyleSpec,
 } from '@/schema';
 
 import { UnreachableCaseError } from '@/utils/typescript';
@@ -70,5 +70,5 @@ export function createStyleSpec<T extends StyleConfig>(
       return renderResult;
     },
   });
-  return createInternalStyleSpec(styleConfig, { mark });
+  return createStronglyTypedInternalStyleSpec(styleConfig, { mark });
 }

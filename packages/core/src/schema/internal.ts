@@ -77,14 +77,15 @@ export function propsToAttributes(
 export function stylePropsToAttributes(
   propSchema: StylePropSchema,
 ): Attributes {
+  // 布尔类型 不需要把值存到属性中,只需要在parse中的rules中对 'data-style-type'添加一个值就行
   if (propSchema === 'boolean') {
     return {};
   }
-
+  // 统一使用'stringValue'来存储解析
   return {
     stringValue: {
       default: undefined,
-      keepOnSplit: true,
+      keepOnSplit: true, // 分割依然携带mark
       parseHTML: (element) => element.getAttribute('data-value'),
       renderHTML: (attributes) =>
         attributes.stringValue !== undefined
@@ -160,10 +161,15 @@ export function createStyleParseRules(config: StyleConfig): ParseRule[] {
     {
       tag: `[data-style-type="${config.type}"]`,
       contentElement: (element: HTMLElement) => {
+        // 如果当前节点是可编辑的，则返回当前节点
+        // 示例: <div data-style-type='*' data-editable>
         if (element.matches('[data-editable]')) {
           return element;
         }
 
+        // 返回当前节点的第一个可编辑节点
+        // 示例: <div data-style-type='*'> <span>**</span> <div data-editable></div></div>
+        // 最后没找到就返回本身
         return element.querySelector('[data-editable]') || element;
       },
     },
@@ -233,8 +239,7 @@ export function wrapInBlockStructure<BType extends string>(
     contentDOM: blockContent,
   };
 }
-
-export function createInternalStyleSpec<T extends StyleConfig>(
+export function createStronglyTypedInternalStyleSpec<T extends StyleConfig>(
   config: T,
   implementation: StyleImplementation,
 ) {

@@ -1,4 +1,5 @@
 import type {
+  InlineContent,
   InlineContentSchema,
   PartialInlineContent,
   Props,
@@ -6,6 +7,16 @@ import type {
   StyleSchema,
 } from '@/schema';
 
+// 确保编译阶段的时候 字典的key 和 配置里面的type属性值 是一致的
+type NamesMatch<Blocks extends Record<string, BlockConfig>> = Blocks extends {
+  [Type in keyof Blocks]: Type extends string
+    ? Blocks[Type] extends { type: Type }
+      ? Blocks[Type]
+      : never
+    : never;
+}
+  ? Blocks
+  : never;
 /*
  * 垂直单元
  * 支持块级深度嵌套
@@ -19,7 +30,8 @@ export type BlockConfig = {
   content: 'inline' | 'none' | 'table';
   readonly propSchema: PropSchema;
 };
-
+// 块级内容的key 和 里面的type 一致
+export type BlockSchema = NamesMatch<Record<string, BlockConfig>>;
 // 扩展出自定义区块配置类型
 export type CustomBlockConfig = BlockConfig & {
   content: 'inline' | 'none';
@@ -38,8 +50,53 @@ type PartialBlockFromConfigNoChildren<
   id?: string;
 };
 
+export type TableContent<
+  I extends InlineContentSchema,
+  S extends StyleSchema = StyleSchema,
+> = {
+  type: 'tableContent';
+  columnWidths: (number | undefined)[];
+  rows: {
+    cells: InlineContent<I, S>[][];
+  }[];
+};
+
+export type BlockFromConfigNoChildren<
+  B extends BlockConfig,
+  I extends InlineContentSchema,
+  S extends StyleSchema,
+> = {
+  id: string;
+  type: B['type'];
+  props: Props<B['propSchema']>;
+  content: B['content'] extends 'inline'
+    ? InlineContent<I, S>[]
+    : B['content'] extends 'table'
+      ? TableContent<I, S>
+      : B['content'] extends 'none'
+        ? undefined
+        : never;
+};
+type BlocksWithoutChildren<
+  BSchema extends BlockSchema,
+  I extends InlineContentSchema,
+  S extends StyleSchema,
+> = {
+  [BType in keyof BSchema]: BlockFromConfigNoChildren<BSchema[BType], I, S>;
+};
+
+export type BlockNoDefaults<
+  BSchema extends BlockSchema,
+  I extends InlineContentSchema,
+  S extends StyleSchema,
+> = BlocksWithoutChildren<BSchema, I, S>[keyof BSchema] & {
+  children: BlockNoDefaults<BSchema, I, S>[];
+};
+
 export type PartialBlockFromConfig<
   B extends BlockConfig,
   I extends InlineContentSchema,
   S extends StyleSchema,
-> = PartialBlockFromConfigNoChildren<B, I, S>;
+> = PartialBlockFromConfigNoChildren<B, I, S> & {
+  children?: BlockNoDefaults<BlockSchema, I, S>[];
+};

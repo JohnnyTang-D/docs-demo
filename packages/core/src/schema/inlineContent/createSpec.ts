@@ -1,8 +1,7 @@
-import {
-  createInlineContentRules,
+import { createInlineContentRules, propsToAttributes } from '@/schema';
+import type {
   CustomInlineContentConfig,
   InlineContentFromConfig,
-  propsToAttributes,
   StyleSchema,
 } from '@/schema';
 import { Node } from '@tiptap/core';
