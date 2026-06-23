@@ -4,7 +4,7 @@ import type { CustomBlockConfig, CustomBlockImplementation } from '@/index';
 
 describe('createBlockSpec', () => {
   // 默认实现，作为一个占位符传入
-  const defaultImpl: CustomBlockImplementation<any> = {};
+  const defaultImpl: CustomBlockImplementation<any, any, any> = {};
 
   // 测试配置工厂函数，生成基础区块配置
   const createTestConfig = (
